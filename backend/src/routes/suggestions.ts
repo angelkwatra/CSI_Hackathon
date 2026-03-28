@@ -1,13 +1,14 @@
 import { Router, Request, Response } from "express";
-import { suggestions, kpi } from "../data/store";
+import { getStore } from "../data/store";
 
 const router = Router();
 
 /** GET /api/suggestions — List all suggestions, optional impact filter */
 router.get("/", (req: Request, res: Response) => {
-  const { impact } = req.query as Record<string, string>;
+  const { impact, userId = "default" } = req.query as Record<string, string>;
+  const store = getStore(userId);
 
-  let result = [...suggestions];
+  let result = [...store.suggestions];
   if (impact && impact !== "all") {
     result = result.filter((s) => s.impact === impact);
   }
@@ -17,7 +18,9 @@ router.get("/", (req: Request, res: Response) => {
 
 /** PATCH /api/suggestions/:id/apply — Mark a suggestion as applied */
 router.patch("/:id/apply", (req: Request, res: Response) => {
-  const suggestion = suggestions.find((s) => s.id === req.params.id);
+  const { userId = "default" } = req.body;
+  const store = getStore(userId);
+  const suggestion = store.suggestions.find((s) => s.id === req.params.id);
 
   if (!suggestion) {
     res.status(404).json({ error: "Suggestion not found" });
@@ -32,12 +35,12 @@ router.patch("/:id/apply", (req: Request, res: Response) => {
   suggestion.applied = true;
 
   // Update KPIs with savings
-  kpi.totalCostSaved += suggestion.savingsINR;
-  kpi.totalCO2Saved += suggestion.savingsCO2;
+  store.kpi.totalCostSaved += suggestion.savingsINR;
+  store.kpi.totalCO2Saved += suggestion.savingsCO2;
 
   res.json({
     suggestion,
-    updatedKPI: kpi,
+    updatedKPI: store.kpi,
   });
 });
 

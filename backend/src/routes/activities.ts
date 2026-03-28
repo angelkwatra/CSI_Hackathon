@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { activities, kpi } from "../data/store";
+import { getStore } from "../data/store";
 import { generateId } from "../utils/helpers";
 import { ActivityType } from "../types";
 
@@ -13,9 +13,11 @@ router.get("/", (req: Request, res: Response) => {
     to,
     page = "1",
     limit = "20",
+    userId = "default",
   } = req.query as Record<string, string>;
 
-  let filtered = [...activities];
+  const store = getStore(userId);
+  let filtered = [...store.activities];
 
   // Filter by type
   if (type && type !== "all") {
@@ -59,7 +61,7 @@ router.get("/", (req: Request, res: Response) => {
 
 /** POST /api/activities — Log a new activity */
 router.post("/", (req: Request, res: Response) => {
-  const { type, description, size, costINR, carbonKg } = req.body;
+  const { type, description, size, costINR, carbonKg, userId = "default" } = req.body;
 
   if (!type || !description || !size) {
     res.status(400).json({ error: "type, description, and size are required" });
@@ -84,22 +86,26 @@ router.post("/", (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
   };
 
+  const store = getStore(userId);
+
   // Add to beginning (newest first)
-  activities.unshift(activity);
+  store.activities.unshift(activity);
 
   // Update KPIs
-  kpi.totalCostSaved += activity.costINR * 0.3;
-  kpi.totalCO2Saved += activity.carbonKg * 0.3;
-  if (activity.type === "email") kpi.emailsOptimized += 1;
-  if (activity.type === "ai") kpi.aiUsageReduced += 0.5;
-  if (activity.type === "search") kpi.searchesOptimized += 1;
+  store.kpi.totalCostSaved += activity.costINR * 0.3;
+  store.kpi.totalCO2Saved += activity.carbonKg * 0.3;
+  if (activity.type === "email") store.kpi.emailsOptimized += 1;
+  if (activity.type === "ai") store.kpi.aiUsageReduced += 0.5;
+  if (activity.type === "search") store.kpi.searchesOptimized += 1;
 
   res.status(201).json(activity);
 });
 
 /** GET /api/activities/:id */
 router.get("/:id", (req: Request, res: Response) => {
-  const activity = activities.find((a) => a.id === req.params.id);
+  const { userId = "default" } = req.query as Record<string, string>;
+  const store = getStore(userId);
+  const activity = store.activities.find((a) => a.id === req.params.id);
   if (!activity) {
     res.status(404).json({ error: "Activity not found" });
     return;

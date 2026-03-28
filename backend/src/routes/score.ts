@@ -1,14 +1,16 @@
 import { Router, Request, Response } from "express";
-import { sustainabilityScore, breakdown } from "../data/store";
+import { getStore } from "../data/store";
 import { ScoreResponse } from "../types";
 
 const router = Router();
 
 /** GET /api/score — Sustainability score + breakdown */
-router.get("/", (_req: Request, res: Response) => {
+router.get("/", (req: Request, res: Response) => {
+  const { userId = "default" } = req.query as Record<string, string>;
+  const store = getStore(userId);
   const response: ScoreResponse = {
-    score: sustainabilityScore,
-    breakdown,
+    score: store.sustainabilityScore,
+    breakdown: store.breakdown,
   };
   res.json(response);
 });

@@ -38,12 +38,14 @@ interface DashboardResponse {
   recentActivities: Activity[];
 }
 
-export function fetchDashboard(): Promise<DashboardResponse> {
-  return fetchJSON("/api/dashboard");
+export function fetchDashboard(userId?: string): Promise<DashboardResponse> {
+  const qs = userId ? `?userId=${userId}` : "";
+  return fetchJSON(`/api/dashboard${qs}`);
 }
 
-export function fetchKPI(): Promise<KPIData> {
-  return fetchJSON("/api/dashboard/kpi");
+export function fetchKPI(userId?: string): Promise<KPIData> {
+  const qs = userId ? `?userId=${userId}` : "";
+  return fetchJSON(`/api/dashboard/kpi${qs}`);
 }
 
 // ── Activities ───────────────────────────────────────
@@ -64,6 +66,7 @@ export function fetchActivities(params?: {
   to?: string;
   page?: number;
   limit?: number;
+  userId?: string;
 }): Promise<ActivitiesResponse> {
   const query = new URLSearchParams();
   if (params?.type && params.type !== "all") query.set("type", params.type);
@@ -71,6 +74,7 @@ export function fetchActivities(params?: {
   if (params?.to) query.set("to", params.to);
   if (params?.page) query.set("page", String(params.page));
   if (params?.limit) query.set("limit", String(params.limit));
+  if (params?.userId) query.set("userId", params.userId);
 
   const qs = query.toString();
   return fetchJSON(`/api/activities${qs ? `?${qs}` : ""}`);
@@ -78,9 +82,13 @@ export function fetchActivities(params?: {
 
 // ── Suggestions ──────────────────────────────────────
 
-export function fetchSuggestions(impact?: string): Promise<Suggestion[]> {
-  const qs = impact && impact !== "all" ? `?impact=${impact}` : "";
-  return fetchJSON(`/api/ai-suggestions${qs}`);
+export function fetchSuggestions(userId?: string, impact?: string): Promise<Suggestion[]> {
+  const query = new URLSearchParams();
+  if (userId) query.set("userId", userId);
+  if (impact && impact !== "all") query.set("impact", impact);
+  
+  const qs = query.toString();
+  return fetchJSON(`/api/ai-suggestions${qs ? `?${qs}` : ""}`);
 }
 
 interface ApplySuggestionResponse {
@@ -88,8 +96,11 @@ interface ApplySuggestionResponse {
   updatedKPI: KPIData;
 }
 
-export function applySuggestionAPI(id: string): Promise<ApplySuggestionResponse> {
-  return fetchJSON(`/api/suggestions/${id}/apply`, { method: "PATCH" });
+export function applySuggestionAPI(id: string, userId?: string): Promise<ApplySuggestionResponse> {
+  return fetchJSON(`/api/suggestions/${id}/apply`, { 
+    method: "PATCH",
+    body: JSON.stringify({ userId })
+  });
 }
 
 // ── Score ────────────────────────────────────────────
@@ -99,22 +110,25 @@ interface ScoreResponse {
   breakdown: SustainabilityBreakdown;
 }
 
-export function fetchScore(): Promise<ScoreResponse> {
-  return fetchJSON("/api/score");
+export function fetchScore(userId?: string): Promise<ScoreResponse> {
+  const qs = userId ? `?userId=${userId}` : "";
+  return fetchJSON(`/api/score${qs}`);
 }
 
 // ── Settings ─────────────────────────────────────────
 
-export function fetchSettings(): Promise<Settings> {
-  return fetchJSON("/api/settings");
+export function fetchSettings(userId?: string): Promise<Settings> {
+  const qs = userId ? `?userId=${userId}` : "";
+  return fetchJSON(`/api/settings${qs}`);
 }
 
 export function updateSettingsAPI(
-  partial: Partial<Settings>
+  partial: Partial<Settings>,
+  userId?: string
 ): Promise<Settings> {
   return fetchJSON("/api/settings", {
     method: "PATCH",
-    body: JSON.stringify(partial),
+    body: JSON.stringify({ ...partial, userId }),
   });
 }
 

@@ -25,6 +25,10 @@ interface DateRange {
 }
 
 interface AppState {
+  // User Identity
+  userId: string | null;
+  setUserId: (id: string | null) => void;
+
   // Loading
   loading: boolean;
   error: string | null;
@@ -80,7 +84,18 @@ const defaultKPI: KPIData = {
   searchesOptimized: 0,
 };
 
+// Helper to get userId from URL
+const getUserIdFromURL = () => {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  return params.get("user") || params.get("userId");
+};
+
 export const useAppStore = create<AppState>((set, get) => ({
+  // User Identity
+  userId: getUserIdFromURL(),
+  setUserId: (userId) => set({ userId }),
+
   // Loading
   loading: false,
   error: null,
@@ -101,8 +116,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Suggestions
   suggestions: [],
   applySuggestion: async (id) => {
+    const { userId } = get();
     try {
-      const { suggestion, updatedKPI } = await applySuggestionAPI(id);
+      const { suggestion, updatedKPI } = await applySuggestionAPI(id, userId || undefined);
       set((state) => ({
         suggestions: state.suggestions.map((s) =>
           s.id === id ? suggestion : s
@@ -144,12 +160,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     aiToolsConnected: false,
   },
   updateSettings: async (partial) => {
+    const { userId } = get();
     // Optimistic update
     set((state) => ({
       settings: { ...state.settings, ...partial },
     }));
     try {
-      const updated = await updateSettingsAPI(partial);
+      const updated = await updateSettingsAPI(partial, userId || undefined);
       set({ settings: updated });
     } catch {
       // Revert on failure would go here; for now keep optimistic
@@ -170,9 +187,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   // ── Data Fetching ────────────────────────────────
 
   fetchDashboardData: async () => {
+    const { userId } = get();
     set({ loading: true, error: null });
     try {
-      const data = await fetchDashboard();
+      const data = await fetchDashboard(userId || undefined);
       const parsedActivities = data.recentActivities.map((a) => ({
         ...a,
         timestamp: new Date(a.timestamp),
@@ -190,7 +208,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   fetchActivityHistory: async () => {
-    const { activityTypeFilter, dateRange } = get();
+    const { activityTypeFilter, dateRange, userId } = get();
     set({ loading: true, error: null });
     try {
       const data = await fetchActivities({
@@ -198,6 +216,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         from: dateRange.from?.toISOString(),
         to: dateRange.to?.toISOString(),
         limit: 100,
+        userId: userId || undefined,
       });
       // Parse timestamp strings into Date objects for frontend
       const parsed = data.data.map((a) => ({
@@ -211,9 +230,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   fetchSuggestionsData: async () => {
+    const { userId } = get();
     set({ loading: true, error: null });
     try {
-      const data = await fetchSuggestions();
+      const data = await fetchSuggestions(userId || undefined);
       set({ suggestions: data, loading: false });
     } catch (e) {
       set({ error: (e as Error).message, loading: false });
@@ -221,9 +241,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   fetchScoreData: async () => {
+    const { userId } = get();
     set({ loading: true, error: null });
     try {
-      const data = await fetchScore();
+      const data = await fetchScore(userId || undefined);
       set({
         sustainabilityScore: data.score,
         breakdown: data.breakdown,
@@ -235,8 +256,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   fetchSettingsData: async () => {
+    const { userId } = get();
     try {
-      const data = await fetchSettings();
+      const data = await fetchSettings(userId || undefined);
       set({ settings: data });
     } catch {
       // Use defaults on failure
