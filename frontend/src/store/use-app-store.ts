@@ -1,0 +1,244 @@
+import { create } from "zustand";
+import {
+  Activity,
+  Suggestion,
+  Settings,
+  KPIData,
+  SustainabilityBreakdown,
+  TimeSeriesPoint,
+  UsageDistribution,
+  ActivityType,
+} from "@/lib/types";
+import {
+  fetchDashboard,
+  fetchActivities,
+  fetchSuggestions,
+  fetchScore,
+  fetchSettings,
+  applySuggestionAPI,
+  updateSettingsAPI,
+} from "@/lib/api";
+
+interface DateRange {
+  from: Date | undefined;
+  to: Date | undefined;
+}
+
+interface AppState {
+  // Loading
+  loading: boolean;
+  error: string | null;
+
+  // KPI
+  kpi: KPIData;
+  setKPI: (kpi: KPIData) => void;
+
+  // Activities
+  activities: Activity[];
+  activityHistory: Activity[];
+  addActivity: (activity: Activity) => void;
+
+  // Suggestions
+  suggestions: Suggestion[];
+  applySuggestion: (id: string) => Promise<void>;
+
+  // Charts
+  timeSeries: TimeSeriesPoint[];
+  distribution: UsageDistribution[];
+
+  // Sustainability
+  sustainabilityScore: number;
+  breakdown: SustainabilityBreakdown;
+
+  // Settings
+  settings: Settings;
+  updateSettings: (partial: Partial<Settings>) => Promise<void>;
+
+  // Filters
+  activityTypeFilter: ActivityType | "all";
+  setActivityTypeFilter: (filter: ActivityType | "all") => void;
+  dateRange: DateRange;
+  setDateRange: (range: DateRange) => void;
+
+  // Real-time state
+  isLiveTracking: boolean;
+  toggleLiveTracking: () => void;
+
+  // Data fetching
+  fetchDashboardData: () => Promise<void>;
+  fetchActivityHistory: () => Promise<void>;
+  fetchSuggestionsData: () => Promise<void>;
+  fetchScoreData: () => Promise<void>;
+  fetchSettingsData: () => Promise<void>;
+}
+
+const defaultKPI: KPIData = {
+  totalCostSaved: 0,
+  totalCO2Saved: 0,
+  emailsOptimized: 0,
+  aiUsageReduced: 0,
+};
+
+export const useAppStore = create<AppState>((set, get) => ({
+  // Loading
+  loading: false,
+  error: null,
+
+  // KPI
+  kpi: defaultKPI,
+  setKPI: (kpi) => set({ kpi }),
+
+  // Activities
+  activities: [],
+  activityHistory: [],
+  addActivity: (activity) =>
+    set((state) => ({
+      activities: [activity, ...state.activities].slice(0, 20),
+      activityHistory: [activity, ...state.activityHistory],
+    })),
+
+  // Suggestions
+  suggestions: [],
+  applySuggestion: async (id) => {
+    try {
+      const { suggestion, updatedKPI } = await applySuggestionAPI(id);
+      set((state) => ({
+        suggestions: state.suggestions.map((s) =>
+          s.id === id ? suggestion : s
+        ),
+        kpi: updatedKPI,
+      }));
+    } catch {
+      // Optimistic fallback: update locally if backend fails
+      set((state) => ({
+        suggestions: state.suggestions.map((s) =>
+          s.id === id ? { ...s, applied: true } : s
+        ),
+        kpi: {
+          ...state.kpi,
+          totalCostSaved:
+            state.kpi.totalCostSaved +
+            (state.suggestions.find((s) => s.id === id)?.savingsINR ?? 0),
+          totalCO2Saved:
+            state.kpi.totalCO2Saved +
+            (state.suggestions.find((s) => s.id === id)?.savingsCO2 ?? 0),
+        },
+      }));
+    }
+  },
+
+  // Charts
+  timeSeries: [],
+  distribution: [],
+
+  // Sustainability
+  sustainabilityScore: 0,
+  breakdown: { email: 0, ai: 0, storage: 0 },
+
+  // Settings
+  settings: {
+    privacyMode: false,
+    notifications: true,
+    gmailConnected: false,
+    aiToolsConnected: false,
+  },
+  updateSettings: async (partial) => {
+    // Optimistic update
+    set((state) => ({
+      settings: { ...state.settings, ...partial },
+    }));
+    try {
+      const updated = await updateSettingsAPI(partial);
+      set({ settings: updated });
+    } catch {
+      // Revert on failure would go here; for now keep optimistic
+    }
+  },
+
+  // Filters
+  activityTypeFilter: "all",
+  setActivityTypeFilter: (filter) => set({ activityTypeFilter: filter }),
+  dateRange: { from: undefined, to: undefined },
+  setDateRange: (range) => set({ dateRange: range }),
+
+  // Real-time
+  isLiveTracking: true,
+  toggleLiveTracking: () =>
+    set((state) => ({ isLiveTracking: !state.isLiveTracking })),
+
+  // ── Data Fetching ────────────────────────────────
+
+  fetchDashboardData: async () => {
+    set({ loading: true, error: null });
+    try {
+      const data = await fetchDashboard();
+      const parsedActivities = data.recentActivities.map((a) => ({
+        ...a,
+        timestamp: new Date(a.timestamp),
+      }));
+      set({
+        kpi: data.kpi,
+        timeSeries: data.timeSeries,
+        distribution: data.distribution,
+        activities: parsedActivities,
+        loading: false,
+      });
+    } catch (e) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  fetchActivityHistory: async () => {
+    const { activityTypeFilter, dateRange } = get();
+    set({ loading: true, error: null });
+    try {
+      const data = await fetchActivities({
+        type: activityTypeFilter,
+        from: dateRange.from?.toISOString(),
+        to: dateRange.to?.toISOString(),
+        limit: 100,
+      });
+      // Parse timestamp strings into Date objects for frontend
+      const parsed = data.data.map((a) => ({
+        ...a,
+        timestamp: new Date(a.timestamp),
+      }));
+      set({ activityHistory: parsed, loading: false });
+    } catch (e) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  fetchSuggestionsData: async () => {
+    set({ loading: true, error: null });
+    try {
+      const data = await fetchSuggestions();
+      set({ suggestions: data, loading: false });
+    } catch (e) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  fetchScoreData: async () => {
+    set({ loading: true, error: null });
+    try {
+      const data = await fetchScore();
+      set({
+        sustainabilityScore: data.score,
+        breakdown: data.breakdown,
+        loading: false,
+      });
+    } catch (e) {
+      set({ error: (e as Error).message, loading: false });
+    }
+  },
+
+  fetchSettingsData: async () => {
+    try {
+      const data = await fetchSettings();
+      set({ settings: data });
+    } catch {
+      // Use defaults on failure
+    }
+  },
+}));

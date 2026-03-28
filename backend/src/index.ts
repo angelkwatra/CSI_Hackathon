@@ -1,0 +1,124 @@
+import express from "express";
+import cors from "cors";
+import http from "http";
+import { Server as SocketIOServer } from "socket.io";
+import dotenv from "dotenv";
+
+import dashboardRoutes from "./routes/dashboard";
+import activitiesRoutes from "./routes/activities";
+import suggestionsRoutes from "./routes/suggestions";
+import scoreRoutes from "./routes/score";
+import settingsRoutes from "./routes/settings";
+import calculateRoutes from "./routes/calculate";
+import { generateRandomActivity } from "./utils/helpers";
+import { activities, kpi } from "./data/store";
+
+dotenv.config();
+
+const app = express();
+const server = http.createServer(app);
+
+// ── CORS ─────────────────────────────────────────────
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000")
+  .split(",")
+  .map((o) => o.trim());
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (server-to-server, curl, etc.)
+      if (!origin) return callback(null, true);
+      // In development, allow any localhost port
+      if (
+        process.env.NODE_ENV === "development" &&
+        /^http:\/\/localhost:\d+$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  })
+);
+
+app.use(express.json());
+
+// ── Socket.IO ────────────────────────────────────────
+const io = new SocketIOServer(server, {
+  cors: {
+    origin:
+      process.env.NODE_ENV === "development"
+        ? (_origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => cb(null, true)
+        : allowedOrigins,
+    methods: ["GET", "POST"],
+  },
+});
+
+io.on("connection", (socket) => {
+  console.log(`[WS] Client connected: ${socket.id}`);
+
+  socket.on("disconnect", () => {
+    console.log(`[WS] Client disconnected: ${socket.id}`);
+  });
+});
+
+// Push a new random activity to all clients every 8 seconds
+setInterval(() => {
+  const activity = generateRandomActivity();
+  activities.unshift(activity);
+
+  // Keep activities list bounded
+  if (activities.length > 200) {
+    activities.length = 200;
+  }
+
+  // Update KPIs
+  kpi.totalCostSaved += activity.costINR * 0.3;
+  kpi.totalCO2Saved += activity.carbonKg * 0.3;
+  if (activity.type === "email") kpi.emailsOptimized += 1;
+  if (activity.type === "ai") kpi.aiUsageReduced += 0.5;
+
+  io.emit("new-activity", activity);
+  io.emit("kpi-update", kpi);
+}, 8000);
+
+// ── REST Routes ──────────────────────────────────────
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/activities", activitiesRoutes);
+app.use("/api/suggestions", suggestionsRoutes);
+app.use("/api/score", scoreRoutes);
+app.use("/api/settings", settingsRoutes);
+app.use("/api/calculate", calculateRoutes);
+
+// Health check
+app.get("/api/health", (_req, res) => {
+  res.json({
+    status: "ok",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// 404 handler
+app.use((_req, res) => {
+  res.status(404).json({ error: "Route not found" });
+});
+
+// ── Start Server ─────────────────────────────────────
+const PORT = parseInt(process.env.PORT || "5000", 10);
+
+server.listen(PORT, () => {
+  console.log(`
+  ╔═══════════════════════════════════════════════╗
+  ║   Carbon-oh-no Backend                        ║
+  ║   Running on http://localhost:${PORT}             ║
+  ║   WebSocket:  ws://localhost:${PORT}              ║
+  ║   Environment: ${process.env.NODE_ENV || "development"}                 ║
+  ╚═══════════════════════════════════════════════╝
+  `);
+});
+
+export { app, server, io };

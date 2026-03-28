@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(printf N\\\\nN\\\\n:*)",
+      "Bash(npm install:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm run:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}
