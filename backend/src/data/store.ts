@@ -55,6 +55,7 @@ export const breakdown: SustainabilityBreakdown = {
   email: 0,
   ai: 0,
   storage: 0,
+  search: 0,
 };
 
 // ── Settings ─────────────────────────────────────────

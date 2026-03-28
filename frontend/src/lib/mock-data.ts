@@ -14,6 +14,7 @@ export const kpiData: KPIData = {
   totalCO2Saved: 18.42,
   emailsOptimized: 342,
   aiUsageReduced: 28,
+  searchesOptimized: 156,
 };
 
 // Recent activities for the feed
@@ -105,9 +106,10 @@ export const timeSeriesData: TimeSeriesPoint[] = [
 
 // Usage distribution for pie chart
 export const usageDistribution: UsageDistribution[] = [
-  { name: "Email", value: 45, color: "#3b82f6" },
-  { name: "AI Usage", value: 35, color: "#8b5cf6" },
+  { name: "Email", value: 35, color: "#3b82f6" },
+  { name: "AI Usage", value: 30, color: "#8b5cf6" },
   { name: "Storage", value: 20, color: "#10b981" },
+  { name: "Search", value: 15, color: "#f59e0b" },
 ];
 
 // Optimization suggestions
@@ -298,6 +300,7 @@ export const sustainabilityBreakdown: SustainabilityBreakdown = {
   email: 78,
   ai: 62,
   storage: 85,
+  search: 92,
 };
 
 // Generate a random new activity for real-time simulation
@@ -341,6 +344,19 @@ export function generateRandomActivity(): Activity {
       sizes: ["200MB", "1GB", "50MB", "500MB", "150MB"],
       costRange: [0.02, 0.4],
       carbonRange: [0.01, 0.08],
+    },
+    {
+      type: "search" as const,
+      descriptions: [
+        "Google Search: Climate Change",
+        "Search: Local recycling centers",
+        "Google Search: Sustainable fashion",
+        "Search: Renewable energy news",
+        "Google Search: Carbon footprint calculator",
+      ],
+      sizes: ["1 search", "1 search", "1 search", "1 search", "1 search"],
+      costRange: [0.02, 0.02],
+      carbonRange: [0.0002, 0.0002],
     },
   ];
 

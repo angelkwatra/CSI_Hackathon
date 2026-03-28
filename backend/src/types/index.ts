@@ -47,6 +47,7 @@ export interface SustainabilityBreakdown {
   email: number;
   ai: number;
   storage: number;
+  search: number;
 }
 
 export interface Settings {

@@ -5,6 +5,7 @@ import {
   TimeSeriesPoint,
   UsageDistribution,
   Settings,
+  SustainabilityBreakdown,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -95,7 +96,7 @@ export function applySuggestionAPI(id: string): Promise<ApplySuggestionResponse>
 
 interface ScoreResponse {
   score: number;
-  breakdown: { email: number; ai: number; storage: number };
+  breakdown: SustainabilityBreakdown;
 }
 
 export function fetchScore(): Promise<ScoreResponse> {
