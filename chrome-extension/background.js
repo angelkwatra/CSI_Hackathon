@@ -1,9 +1,17 @@
+try {
+  importScripts("config.js");
+} catch (e) {
+  console.error("Failed to load config.js:", e);
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === "LOG_ACTIVITY") {
     console.log("Activity detected from Background Script:", request.payload);
     
+    const api_url = (typeof CONFIG !== "undefined" ? CONFIG.API_URL : "http://localhost:5000");
+    
     // Send to backend Activity API
-    fetch("http://localhost:5000/api/activities", {
+    fetch(`${api_url}/api/activities`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

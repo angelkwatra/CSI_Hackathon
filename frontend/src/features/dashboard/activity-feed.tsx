@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Bot, HardDrive, Clock } from "lucide-react";
+import { Mail, Bot, HardDrive, Clock, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Tooltip,
@@ -17,12 +17,14 @@ const iconMap: Record<ActivityType, typeof Mail> = {
   email: Mail,
   ai: Bot,
   storage: HardDrive,
+  search: Search,
 };
 
 const colorMap: Record<ActivityType, string> = {
   email: "text-blue-500 bg-blue-500/10",
   ai: "text-violet-500 bg-violet-500/10",
   storage: "text-emerald-500 bg-emerald-500/10",
+  search: "text-amber-500 bg-amber-500/10",
 };
 
 function timeAgo(date: Date): string {

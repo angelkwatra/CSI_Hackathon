@@ -77,6 +77,7 @@ const defaultKPI: KPIData = {
   totalCO2Saved: 0,
   emailsOptimized: 0,
   aiUsageReduced: 0,
+  searchesOptimized: 0,
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -133,7 +134,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   // Sustainability
   sustainabilityScore: 0,
-  breakdown: { email: 0, ai: 0, storage: 0 },
+  breakdown: { email: 0, ai: 0, storage: 0, search: 0 },
 
   // Settings
   settings: {

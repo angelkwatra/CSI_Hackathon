@@ -66,11 +66,11 @@ router.post("/", (req: Request, res: Response) => {
     return;
   }
 
-  const validTypes: ActivityType[] = ["email", "ai", "storage"];
+  const validTypes: ActivityType[] = ["email", "ai", "storage", "search"];
   if (!validTypes.includes(type)) {
     res
       .status(400)
-      .json({ error: "type must be one of: email, ai, storage" });
+      .json({ error: "type must be one of: email, ai, storage, search" });
     return;
   }
 
@@ -92,6 +92,7 @@ router.post("/", (req: Request, res: Response) => {
   kpi.totalCO2Saved += activity.carbonKg * 0.3;
   if (activity.type === "email") kpi.emailsOptimized += 1;
   if (activity.type === "ai") kpi.aiUsageReduced += 0.5;
+  if (activity.type === "search") kpi.searchesOptimized += 1;
 
   res.status(201).json(activity);
 });

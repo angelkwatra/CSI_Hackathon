@@ -30,6 +30,7 @@ The internet produces **4% of global carbon emissions**—more than the entire a
 | **📧 Emails** | `0.000005 / MB` | **₹0.005 / MB** | Network Data Egress (AWS/GCP Benchmarks) |
 | **☁️ Storage** | `0.000001 / MB` | **₹0.001 / MB** | Idle HDD Storage Power + S3/Drive Pricing |
 | **🤖 AI Tokens** | `0.000003 / Token` | **₹0.0003 / Token** | GPU Inference Energy + OpenAI API Rates |
+| **🔍 Search** | `0.0003 / Search` | **₹0.02 / Search** | Google Environmental Report (0.2g CO₂ Avg) |
 
 > [!IMPORTANT]
 > **Localization:** We use India's official Grid Factor of **0.7 kg CO₂/kWh** and a Hyperscale PUE of **1.2**. This isn't a global guess; it's local reality.

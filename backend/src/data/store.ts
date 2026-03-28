@@ -20,6 +20,7 @@ export const kpi: KPIData = {
   totalCO2Saved: 0,
   emailsOptimized: 0,
   aiUsageReduced: 0,
+  searchesOptimized: 0,
 };
 
 // ── Activities ───────────────────────────────────────
@@ -41,6 +42,7 @@ export const distribution: UsageDistribution[] = [
   { name: "Email", value: 0, color: "#3b82f6" },
   { name: "AI Usage", value: 0, color: "#8b5cf6" },
   { name: "Storage", value: 0, color: "#10b981" },
+  { name: "Search", value: 0, color: "#f59e0b" },
 ];
 
 // ── Suggestions ──────────────────────────────────────

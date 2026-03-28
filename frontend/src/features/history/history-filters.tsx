@@ -37,6 +37,7 @@ export function HistoryFilters() {
           <SelectItem value="email">Email</SelectItem>
           <SelectItem value="ai">AI Usage</SelectItem>
           <SelectItem value="storage">Storage</SelectItem>
+          <SelectItem value="search">Google Search</SelectItem>
         </SelectContent>
       </Select>
 

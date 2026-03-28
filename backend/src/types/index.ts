@@ -1,4 +1,4 @@
-export type ActivityType = "email" | "ai" | "storage";
+export type ActivityType = "email" | "ai" | "storage" | "search";
 
 export type ImpactLevel = "high" | "medium" | "low";
 
@@ -40,6 +40,7 @@ export interface KPIData {
   totalCO2Saved: number;
   emailsOptimized: number;
   aiUsageReduced: number;
+  searchesOptimized: number;
 }
 
 export interface SustainabilityBreakdown {

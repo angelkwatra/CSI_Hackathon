@@ -112,7 +112,7 @@ app.use((_req, res) => {
 // ── Start Server ─────────────────────────────────────
 const PORT = parseInt(process.env.PORT || "5000", 10);
 
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`
   ╔═══════════════════════════════════════════════╗
   ║   Carbon-oh-no Backend                        ║

@@ -30,19 +30,21 @@ function removeBanner(id) {
 
 // ── 1. ChatGPT Tracker (chatgpt.com) ─────────────
 if (window.location.hostname.includes("chatgpt.com")) {
-  let lastCharCount = 0;
+  const getChatGPTCount = () => {
+    const textarea = document.getElementById("prompt-textarea") || 
+                     document.querySelector('div[contenteditable="true"]') || 
+                     document.querySelector('div[contenteditable="plaintext-only"]');
+    if (!textarea) return 0;
+    const textContent = textarea.value || textarea.innerText || textarea.textContent || "";
+    return textContent.trim().length;
+  };
 
   setInterval(() => {
     try {
-      // Find ChatGPT input box specifically (they use contenteditable divs with these tags)
-      const textarea = document.getElementById("prompt-textarea") || document.querySelector('div[contenteditable="true"]') || document.querySelector('div[contenteditable="plaintext-only"]');
-      if (!textarea) return;
-
-      const textContent = textarea.value || textarea.innerText || textarea.textContent || "";
-      const charCount = textContent.trim().length;
+      const charCount = getChatGPTCount();
       lastCharCount = charCount;
       
-      // VERY LOW threshold for testing: 20 characters! 
+      // Threshold for testing: 20 characters
       if (charCount > 20) {
         injectBanner("carbon-chatgpt-warning", `High Token Usage! (> ${charCount} chars). Estimated: ~0.005 kg CO₂. Consider summarizing!`);
       } else {
@@ -53,9 +55,13 @@ if (window.location.hostname.includes("chatgpt.com")) {
 
   document.addEventListener("keydown", (e) => {
     try {
-      if (e.key === "Enter" && !e.shiftKey && lastCharCount > 0) {
-        scrapeAndPostGPT(lastCharCount);
-        removeBanner("carbon-chatgpt-warning");
+      if (e.key === "Enter" && !e.shiftKey) {
+        // Use current count or last known count from interval if cleared
+        const count = getChatGPTCount() || lastCharCount;
+        if (count > 0) {
+          scrapeAndPostGPT(count);
+          removeBanner("carbon-chatgpt-warning");
+        }
       }
     } catch(e) {}
   });
@@ -64,9 +70,15 @@ if (window.location.hostname.includes("chatgpt.com")) {
     try {
       let target = e.target;
       while (target && target !== document) {
-        if (target.getAttribute && target.getAttribute("data-testid") && target.getAttribute("data-testid").includes("send-button")) {
-          if (lastCharCount > 0) {
-            scrapeAndPostGPT(lastCharCount);
+        // Expanded selectors for ChatGPT Send button
+        if (
+          (target.getAttribute && target.getAttribute("data-testid") && target.getAttribute("data-testid").includes("send-button")) ||
+          (target.nodeName === "BUTTON" && target.querySelector('svg') && target.parentElement?.classList.contains('flex')) ||
+          (target.ariaLabel === "Send prompt")
+        ) {
+          const count = getChatGPTCount() || lastCharCount;
+          if (count > 0) {
+            scrapeAndPostGPT(count);
             removeBanner("carbon-chatgpt-warning");
           }
           break;
@@ -167,4 +179,76 @@ if (window.location.hostname.includes("mail.google.com")) {
     }
     logActivityToDashboard({ type: "email", description: totalMB > 0 ? "Email with attachments sent" : "Standard email", size: sizeStr, costINR: estCost, carbonKg: estCarbon });
   }
+}
+
+// ── 3. Google Search Tracker (www.google.com) ───
+if (window.location.hostname.includes("google.com")) {
+  console.log("Carbon-oh-no: Google Search Tracker Active");
+  let searchHandled = false;
+
+  // Function to track search
+  const trackSearch = (query) => {
+    if (searchHandled || !query) return;
+    searchHandled = true;
+    
+    console.log("Carbon-oh-no: Search tracked:", query);
+    logActivityToDashboard({ 
+      type: "search", 
+      description: `Google Search: "${query.substring(0, 30)}${query.length > 30 ? "..." : ""}"`, 
+      size: "1 search", 
+      costINR: 0.02, 
+      carbonKg: 0.0002 
+    });
+    
+    injectBanner("carbon-search-info", `Search Tracked! 🌍 Impact: 0.0002 kg CO₂.`);
+    setTimeout(() => {
+      removeBanner("carbon-search-info");
+    }, 4000);
+    
+    setTimeout(() => { searchHandled = false; }, 2000);
+  };
+
+  // 1. Detect if we just LANDED on a search results page (from address bar/New Tab)
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlQuery = urlParams.get("q");
+  if (window.location.pathname === "/search" && urlQuery) {
+    // We arrived at a search page, track it!
+    trackSearch(urlQuery);
+  }
+
+  // 2. Listen for 'Enter' key on search inputs (for searches ON the page)
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      const target = e.target;
+      if (target && (target.name === "q" || target.getAttribute("role") === "combobox" || target.getAttribute("aria-label")?.includes("Search"))) {
+        trackSearch(target.value);
+      }
+    }
+  });
+
+  // 3. Listen for form submissions
+  document.addEventListener("submit", (e) => {
+    const form = e.target;
+    if (form && (form.action.includes("/search") || form.getAttribute("role") === "search")) {
+      const input = form.querySelector('textarea[name="q"], input[name="q"], [role="combobox"]');
+      if (input) trackSearch(input.value);
+    }
+  });
+
+  // 4. Listen for clicks on search buttons/icons
+  document.addEventListener("click", (e) => {
+    let target = e.target;
+    while (target && target !== document) {
+      if (
+        (target.nodeName === "INPUT" && target.getAttribute("name") === "btnK") || 
+        (target.nodeName === "BUTTON" && (target.type === "submit" || target.getAttribute("aria-label")?.includes("Search"))) ||
+        (target.innerText && target.innerText.includes("Google Search")) ||
+        (target.querySelector && target.querySelector('svg') && target.getAttribute("aria-label")?.includes("Search"))
+      ) {
+        trackSearch();
+        break;
+      }
+      target = target.parentNode;
+    }
+  });
 }
