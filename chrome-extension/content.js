@@ -30,6 +30,8 @@ function removeBanner(id) {
 
 // ── 1. ChatGPT Tracker (chatgpt.com) ─────────────
 if (window.location.hostname.includes("chatgpt.com")) {
+  let lastCharCount = 0;
+
   const getChatGPTCount = () => {
     const textarea = document.getElementById("prompt-textarea") || 
                      document.querySelector('div[contenteditable="true"]') || 
@@ -39,10 +41,22 @@ if (window.location.hostname.includes("chatgpt.com")) {
     return textContent.trim().length;
   };
 
+  // Helper to get the last user message from the chat history
+  const getLastUserMessageCount = () => {
+    try {
+      const messages = document.querySelectorAll('[data-message-author-role="user"]');
+      if (messages.length > 0) {
+        const lastMsg = messages[messages.length - 1];
+        return lastMsg.innerText.trim().length;
+      }
+    } catch(e) {}
+    return 0;
+  };
+
   setInterval(() => {
     try {
       const charCount = getChatGPTCount();
-      lastCharCount = charCount;
+      if (charCount > 0) lastCharCount = charCount;
       
       // Threshold for testing: 20 characters
       if (charCount > 20) {
@@ -53,15 +67,28 @@ if (window.location.hostname.includes("chatgpt.com")) {
     } catch (e) {}
   }, 1000);
 
+  const handleGPTSend = () => {
+    // Priority 1: Current textarea count
+    // Priority 2: Last known count from interval
+    // Priority 3: Scrape the actual message from the history (Wait 500ms for it to appear)
+    const count = getChatGPTCount() || lastCharCount;
+    
+    if (count > 0) {
+      scrapeAndPostGPT(count);
+    } else {
+      // Fallback: wait for the message to hit the DOM
+      setTimeout(() => {
+        const historyCount = getLastUserMessageCount();
+        if (historyCount > 0) scrapeAndPostGPT(historyCount);
+      }, 700);
+    }
+    removeBanner("carbon-chatgpt-warning");
+  };
+
   document.addEventListener("keydown", (e) => {
     try {
       if (e.key === "Enter" && !e.shiftKey) {
-        // Use current count or last known count from interval if cleared
-        const count = getChatGPTCount() || lastCharCount;
-        if (count > 0) {
-          scrapeAndPostGPT(count);
-          removeBanner("carbon-chatgpt-warning");
-        }
+        handleGPTSend();
       }
     } catch(e) {}
   });
@@ -70,17 +97,12 @@ if (window.location.hostname.includes("chatgpt.com")) {
     try {
       let target = e.target;
       while (target && target !== document) {
-        // Expanded selectors for ChatGPT Send button
         if (
           (target.getAttribute && target.getAttribute("data-testid") && target.getAttribute("data-testid").includes("send-button")) ||
           (target.nodeName === "BUTTON" && target.querySelector('svg') && target.parentElement?.classList.contains('flex')) ||
           (target.ariaLabel === "Send prompt")
         ) {
-          const count = getChatGPTCount() || lastCharCount;
-          if (count > 0) {
-            scrapeAndPostGPT(count);
-            removeBanner("carbon-chatgpt-warning");
-          }
+          handleGPTSend();
           break;
         }
         target = target.parentNode;
@@ -89,9 +111,11 @@ if (window.location.hostname.includes("chatgpt.com")) {
   });
 
   function scrapeAndPostGPT(charCount) {
+    if (!charCount) return;
     const estimatedTokens = Math.ceil(charCount / 4) + 50; 
     const cost = parseFloat((estimatedTokens * 0.0015).toFixed(4));
     const carbon = parseFloat((estimatedTokens * 0.00002).toFixed(5));
+    console.log("Carbon-oh-no: Logging GPT Activity", { charCount, estimatedTokens });
     logActivityToDashboard({ type: "ai", description: `ChatGPT prompt (${charCount} chars)`, size: `${estimatedTokens} tokens`, costINR: cost, carbonKg: carbon });
   }
 }
