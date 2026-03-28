@@ -79,7 +79,7 @@ export function fetchActivities(params?: {
 
 export function fetchSuggestions(impact?: string): Promise<Suggestion[]> {
   const qs = impact && impact !== "all" ? `?impact=${impact}` : "";
-  return fetchJSON(`/api/suggestions${qs}`);
+  return fetchJSON(`/api/ai-suggestions${qs}`);
 }
 
 interface ApplySuggestionResponse {

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carbon-oh-no</title>
+    <link rel="stylesheet" href="popup.css">
+    <!-- Import Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <img class="logo" src="icons/icon.png" alt="Carbon-oh-no Logo">
+            <h1 class="title">Carbon<span class="muted">-oh-no</span></h1>
+        </header>
+
+        <main class="content">
+            <div class="status-indicator">
+                <div class="pulse-dot"></div>
+                <span>Live Tracker Active</span>
+            </div>
+
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <span class="kpi-label">Total CO₂ Saved</span>
+                    <strong class="kpi-value text-green" id="co2-val">-- kg</strong>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-label">Total Cost Saved</span>
+                    <strong class="kpi-value text-emerald" id="cost-val">₹ --</strong>
+                </div>
+            </div>
+
+            <a href="http://localhost:3000" target="_blank" class="btn-primary">
+                View Full Dashboard
+            </a>
+        </main>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>

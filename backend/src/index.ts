@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 import dashboardRoutes from "./routes/dashboard";
 import activitiesRoutes from "./routes/activities";
 import suggestionsRoutes from "./routes/suggestions";
+import aiSuggestionsRoutes from "./routes/ai-suggestions";
 import scoreRoutes from "./routes/score";
 import settingsRoutes from "./routes/settings";
 import calculateRoutes from "./routes/calculate";
@@ -28,10 +29,10 @@ app.use(
     origin: (origin, callback) => {
       // Allow requests with no origin (server-to-server, curl, etc.)
       if (!origin) return callback(null, true);
-      // In development, allow any localhost port
+      // Hackathon Fix: allow all chrome extensions and localhost ports
       if (
-        process.env.NODE_ENV === "development" &&
-        /^http:\/\/localhost:\d+$/.test(origin)
+        /^http:\/\/localhost:\d+$/.test(origin) || 
+        /^chrome-extension:\/\//.test(origin)
       ) {
         return callback(null, true);
       }
@@ -66,29 +67,30 @@ io.on("connection", (socket) => {
 });
 
 // Push a new random activity to all clients every 8 seconds
-setInterval(() => {
-  const activity = generateRandomActivity();
-  activities.unshift(activity);
-
-  // Keep activities list bounded
-  if (activities.length > 200) {
-    activities.length = 200;
-  }
-
-  // Update KPIs
-  kpi.totalCostSaved += activity.costINR * 0.3;
-  kpi.totalCO2Saved += activity.carbonKg * 0.3;
-  if (activity.type === "email") kpi.emailsOptimized += 1;
-  if (activity.type === "ai") kpi.aiUsageReduced += 0.5;
-
-  io.emit("new-activity", activity);
-  io.emit("kpi-update", kpi);
-}, 8000);
+// setInterval(() => {
+//   const activity = generateRandomActivity();
+//   activities.unshift(activity);
+// 
+//   // Keep activities list bounded
+//   if (activities.length > 200) {
+//     activities.length = 200;
+//   }
+// 
+//   // Update KPIs
+//   kpi.totalCostSaved += activity.costINR * 0.3;
+//   kpi.totalCO2Saved += activity.carbonKg * 0.3;
+//   if (activity.type === "email") kpi.emailsOptimized += 1;
+//   if (activity.type === "ai") kpi.aiUsageReduced += 0.5;
+// 
+//   io.emit("new-activity", activity);
+//   io.emit("kpi-update", kpi);
+// }, 8000);
 
 // ── REST Routes ──────────────────────────────────────
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/activities", activitiesRoutes);
 app.use("/api/suggestions", suggestionsRoutes);
+app.use("/api/ai-suggestions", aiSuggestionsRoutes);
 app.use("/api/score", scoreRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/calculate", calculateRoutes);
